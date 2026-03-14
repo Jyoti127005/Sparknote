@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sparknote</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif; }
+body,html { height:100%; width:100%; overflow:hidden; }
+
+/* Splash Screen */
+#splash {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background: #d8b4f5;
+  display:flex; justify-content:center; align-items:center;
+  z-index:9999;
+}
+#splash h1 {
+  font-size: 48px;
+  font-weight: bold;
+  color: #000; /* Black text */
+  padding: 20px 40px;
+  border: 4px dashed #fff;
+  border-radius: 20px;
+  opacity: 0;
+  transform: scale(0.8);
+  animation: fadeZoom 2s forwards, borderAnim 3s infinite alternate, splashGlow 2s infinite alternate;
+}
+/* Splash Animations */
+@keyframes fadeZoom {
+  0% { opacity:0; transform: scale(0.8); }
+  50% { opacity:1; transform: scale(1.05); }
+  100% { opacity:1; transform: scale(1); }
+}
+@keyframes borderAnim {
+  0% { border-color: #fff; box-shadow:0 0 5px #fff; }
+  50% { border-color: #ffe4f0; box-shadow:0 0 15px #fff; }
+  100% { border-color: #fff; box-shadow:0 0 5px #fff; }
+}
+@keyframes splashGlow {
+  0% { text-shadow: 0 0 5px #d8b4f5, 0 0 10px #d8b4f5; }
+  50% { text-shadow: 0 0 15px #d8b4f5, 0 0 30px #d8b4f5; }
+  100% { text-shadow: 0 0 5px #d8b4f5, 0 0 10px #d8b4f5; }
+}
+
+/* App container */
+#app {
+  display: none;
+  height:100%;
+  width:100%;
+  flex-direction:column;
+  transform: scaleX(0);
+  transform-origin: left;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  animation: openBook 1s forwards;
+}
+
+/* Book opening animation */
+@keyframes openBook {
+  0% { transform: scaleX(0); }
+  50% { transform: scaleX(1.05) rotateY(-3deg); }
+  100% { transform: scaleX(1) rotateY(0deg); }
+}
+
+/* Glowy animated app title */
+#appTitle {
+  padding:10px;
+  font-size:28px;
+  font-weight:bold;
+  text-align:center;
+  background:#2c2c2c;
+  color:white;
+  cursor:default;
+  margin-bottom:5px;
+  text-shadow: 0 0 10px #d8b4f5, 0 0 20px #d8b4f5;
+  animation: glowPulse 2s infinite alternate;
+}
+@keyframes glowPulse {
+  0% { text-shadow: 0 0 5px #d8b4f5, 0 0 10px #d8b4f5; }
+  50% { text-shadow: 0 0 15px #d8b4f5, 0 0 30px #d8b4f5; }
+  100% { text-shadow: 0 0 5px #d8b4f5, 0 0 10px #d8b4f5; }
+}
+
+/* Toolbar */
+#toolbar {
+  display:flex; gap:8px; padding:8px; flex-wrap:wrap; align-items:center;
+  background: linear-gradient(90deg, #1e1e1e, #2e2e2e, #1e1e1e);
+  background-size: 300% 100%;
+  color:white;
+  animation: toolbarAnim 5s ease infinite;
+}
+@keyframes toolbarAnim {
+  0% { background-position:0% 50%; }
+  50% { background-position:100% 50%; }
+  100% { background-position:0% 50%; }
+}
+button,input[type=color],input[type=number],select {
+  padding:5px 10px; border:none; border-radius:5px; cursor:pointer;
+  transition: all 0.3s ease;
+}
+#toolbar button:hover, select:hover, input:hover{
+  transform: scale(1.1);
+  box-shadow: 0 0 8px #d8b4f5,0 0 12px #d8b4f5;
+}
+
+/* Note Container */
+#noteContainer {
+  flex:1;
+  perspective:1000px;
+  position:relative;
+  padding-left: 50px;
+}
+#noteContainer::before {
+  content: '';
+  position: absolute;
+  left: 50px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #f5c6c6;
+}
+
+/* Page turn animation */
+.pageTurn { animation: pageTurnAnim 0.6s ease forwards; }
+@keyframes pageTurnAnim {
+  0% { transform: rotateY(0deg); opacity:1; }
+  50% { transform: rotateY(-15deg) translateX(-20px); opacity:0.7; }
+  100% { transform: rotateY(0deg) translateX(0); opacity:1; }
+}
+
+/* Note Heading */
+#noteHeading { 
+  width:100%; 
+  padding:12px 20px; 
+  font-size:24px; 
+  font-weight:bold; 
+  border:none; 
+  outline:none; 
+  background:#f0f0f0; 
+  transition: background 0.3s, transform 0.3s, text-shadow 0.3s; 
+}
+#noteHeading:hover {
+  transform: scale(1.03);
+  text-shadow: 0 0 5px #d8b4f5, 0 0 10px #d8b4f5;
+  cursor:text;
+}
+#noteHeading:focus { background: linear-gradient(90deg, #f0f0f0, #e0e0ff); }
+
+/* Editor */
+#editor {
+  height: calc(100% - 60px);
+  padding: 30px 20px;
+  outline: none;
+  overflow-y: auto;
+  font-size: 16px;
+  line-height: 30px; /* matches background line spacing */
+  background-color: #fffdf5;
+  color: #000;
+  border: 1px solid #ccc;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+  background-image: linear-gradient(to bottom, transparent 29px, #cfcfcf 30px);
+  background-size: 100% 30px;
+  position: relative;
+}
+@media(max-width:600px){ 
+  #toolbar{flex-direction:column; align-items:flex-start;} 
+  #editor{padding:15px;} 
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><h1>Welcome to Sparknote</h1></div>
+
+<div id="app">
+
+  <div id="appTitle">Sparknote</div>
+
+  <div id="toolbar">
+    <button onclick="document.execCommand('bold', false, null)">B</button>
+    <button onclick="document.execCommand('italic', false, null)">I</button>
+    <button onclick="document.execCommand('underline', false, null)">U</button>
+    <label>Text Color:<input type="color" id="textColor" value="#000000"></label>
+    <label>Background:<input type="color" id="bgColor" value="#ffffff"></label>
+    <button id="increaseSize">A+</button>
+    <button id="decreaseSize">A-</button>
+    <button id="undoBtn">↶ Undo</button>
+    <button id="redoBtn">↷ Redo</button>
+    <button id="voiceBtn">🎤 Voice</button>
+    <button id="speakBtn">🔊 Read</button>
+    <button id="saveBtn">💾 Save</button>
+    <button id="newNoteBtn">🆕 New Note</button>
+  
+
+    <label>Bullets:
+      <select id="bulletSelect">
+        <option value="">None</option>
+        <option value="disc">● Disc</option>
+        <option value="circle">○ Circle</option>
+        <option value="square">■ Square</option>
+        <option value="arrow">→ Arrow</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="noteContainer">
+    <div id="noteHeading" contenteditable="true">Enter note title...</div>
+    <div id="editor" contenteditable="true" spellcheck="true">Start typing your notes here...</div>
+  </div>
+
+</div>
+
+<script>
+// DOM
+const heading=document.getElementById('noteHeading');
+const editor=document.getElementById('editor');
+const textColorPicker=document.getElementById('textColor');
+const bgColorPicker=document.getElementById('bgColor');
+const increaseBtn=document.getElementById('increaseSize');
+const decreaseBtn=document.getElementById('decreaseSize');
+const undoBtn=document.getElementById('undoBtn');
+const redoBtn=document.getElementById('redoBtn');
+const voiceBtn=document.getElementById('voiceBtn');
+const speakBtn=document.getElementById('speakBtn');
+const saveBtn=document.getElementById('saveBtn');
+const newNoteBtn=document.getElementById('newNoteBtn');
+const loadNotes=document.getElementById('loadNotes');
+const deleteNoteBtn=document.getElementById('deleteNoteBtn');
+const noteContainer=document.getElementById('noteContainer');
+const bulletSelect=document.getElementById('bulletSelect');
+
+let currentBulletStyle = ''; 
+
+// Splash screen
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    document.getElementById('splash').style.transition='opacity 1s ease';
+    document.getElementById('splash').style.opacity=0;
+    setTimeout(()=>{
+      document.getElementById('splash').style.display='none';
+      document.getElementById('app').style.display='flex';
+    },1000);
+  },5000);
+});
+
+// Text formatting
+increaseBtn.addEventListener('click',()=>changeSelectedTextSize(2));
+decreaseBtn.addEventListener('click',()=>changeSelectedTextSize(-2));
+undoBtn.addEventListener('click',()=>document.execCommand('undo'));
+redoBtn.addEventListener('click',()=>document.execCommand('redo'));
+textColorPicker.addEventListener('input',()=>document.execCommand('foreColor',false,textColorPicker.value));
+bgColorPicker.addEventListener('input',()=>{ editor.style.backgroundColor=bgColorPicker.value; });
+
+function changeSelectedTextSize(delta){
+  const selection=window.getSelection();
+  if(!selection.rangeCount) return;
+  const range=selection.getRangeAt(0);
+  if(range.collapsed) return;
+  const span=document.createElement('span');
+  const currentSize=parseInt(window.getComputedStyle(range.startContainer.parentNode).fontSize)||16;
+  span.style.fontSize=(currentSize+delta)+'px';
+  span.appendChild(range.extractContents());
+  range.insertNode(span);
+}
+
+// Voice to text
+let recognition,listening=false;
+if('webkitSpeechRecognition' in window){
+  recognition=new webkitSpeechRecognition();
+  recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-US';
+  recognition.onresult=(e)=>{
+    let transcript='';
+    for(let i=e.resultIndex;i<e.results.length;i++) transcript+=e.results[i][0].transcript;
+    editor.innerHTML+=transcript; editor.scrollTop=editor.scrollHeight;
+  };
+  voiceBtn.addEventListener('click',()=>{
+    if(!listening){ recognition.start(); listening=true; voiceBtn.style.backgroundColor='#0a0'; }
+    else{ recognition.stop(); listening=false; voiceBtn.style.backgroundColor='#333'; }
+  });
+}else{ voiceBtn.disabled=true; voiceBtn.textContent="🎤 Not Supported"; }
+
+// Text to speech
+speakBtn.addEventListener('click',()=>{
+  const textToSpeak=window.getSelection().toString().trim()||editor.innerText;
+  if(!textToSpeak) return;
+  speechSynthesis.speak(new SpeechSynthesisUtterance(textToSpeak));
+});
+
+// Notes storage
+function getNotes(){ return JSON.parse(localStorage.getItem('sparknoteNotes')||'[]'); }
+function saveNotesList(notes){ localStorage.setItem('sparknoteNotes',JSON.stringify(notes)); updateNotesDropdown(); }
+function saveCurrentNote(){
+  const notes=getNotes();
+  let id=editor.dataset.noteId||Date.now();
+  editor.dataset.noteId=id;
+  const note={ id, heading:heading.innerHTML, content:editor.innerHTML, bgColor:editor.style.backgroundColor, headingColor:heading.style.color||'#000', headingSize:heading.style.fontSize||'24px' };
+  const index=notes.findIndex(n=>n.id==id);
+  if(index>=0) notes[index]=note; else notes.push(note);
+  saveNotesList(notes); alert('Note saved!');
+}
+function updateNotesDropdown(){
+  const notes=getNotes();
+  loadNotes.innerHTML='<option value="">Load Note...</option>';
+  notes.forEach(n=>{ loadNotes.innerHTML+=`<option value="${n.id}">${n.heading.replace(/<[^>]*>?/gm,'')}</option>`; });
+}
+
+// Page turn animation
+function animatePageTurn() {
+  noteContainer.classList.remove('pageTurn'); void noteContainer.offsetWidth; noteContainer.classList.add('pageTurn');
+}
+
+// New note
+function newNote(){
+  heading.innerHTML="Enter note title...";
+  heading.style.color="#000";
+  heading.style.fontSize="24px";
+  editor.innerHTML="Start typing your notes here...";
+  editor.style.backgroundColor="#fffdf5";
+  delete editor.dataset.noteId;
+  animatePageTurn(); 
+}
+newNoteBtn.addEventListener('click',()=>{ if(confirm("Start a new note? Unsaved changes will be lost.")) newNote(); });
+
+// Load & delete
+loadNotes.addEventListener('change',()=>{
+  const notes=getNotes();
+  const note=notes.find(n=>n.id==loadNotes.value);
+  if(note){
+    editor.dataset.noteId=note.id;
+    heading.innerHTML=note.heading; heading.style.color=note.headingColor; heading.style.fontSize=note.headingSize;
+    editor.innerHTML=note.content; editor.style.backgroundColor=note.bgColor;
+    bgColorPicker.value=note.bgColor; animatePageTurn();
+  }
+});
+deleteNoteBtn.addEventListener('click',()=>{
+  const notes=getNotes(); const id=editor.dataset.noteId;
+  if(!id){ alert("No note selected"); return; }
+  saveNotesList(notes.filter(n=>n.id!=id)); alert("Note deleted"); newNote();
+});
+saveBtn.addEventListener('click',saveCurrentNote);
+updateNotesDropdown();
+
+// Bullet points
+bulletSelect.addEventListener('change', () => {
+  currentBulletStyle = bulletSelect.value;
+  if(currentBulletStyle==='') return;
+
+  const sel = window.getSelection();
+  const liParent = sel.anchorNode.closest('li');
+  if(editor.innerHTML.trim() === '' || !liParent) insertBulletList(currentBulletStyle);
+  bulletSelect.value = '';
+});
+
+function insertBulletList(style){
+  const ul = document.createElement('ul');
+  if(style==='arrow'){ ul.style.listStyleType='none'; const li=document.createElement('li'); li.innerText='→ '; ul.appendChild(li); }
+  else { ul.style.listStyleType=style; const li=document.createElement('li'); li.innerHTML='<br>'; ul.appendChild(li); }
+  const sel = window.getSelection();
+  if(sel.rangeCount===0) return;
+  const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(ul);
+  const newRange = document.createRange(); newRange.setStart(ul.querySelector('li'),1); newRange.collapse(true);
+  sel.removeAllRanges(); sel.addRange(newRange); editor.focus();
+}
+
+editor.addEventListener('keydown',(e)=>{
+  if(e.key==='Enter'){
+    if(!currentBulletStyle) return;
+    setTimeout(()=>{
+      const li = window.getSelection().anchorNode.closest('li');
+      if(li){
+        if(currentBulletStyle==='arrow') li.innerText='→ '+li.innerText.replace(/^→\s*/,'');
+        else li.style.listStyleType=currentBulletStyle;
+      }
+    },0);
+  }
+});
+</script>
+</body>
+</html>
